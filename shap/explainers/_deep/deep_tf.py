@@ -34,6 +34,11 @@ def custom_record_gradient(op_name, inputs, attrs, results):
 
     return out
 
+def standard_combine_mult_and_diffref(mult, orig_inp, bg_data):
+    to_return = [(mult[l]*(orig_inp[l] - bg_data[l])).mean(0)
+                 for l in range(len(orig_inp))]
+    return to_return
+
 class TFDeep(Explainer):
     """
     Using tf.gradients to implement the backgropagation was
@@ -41,7 +46,7 @@ class TFDeep(Explainer):
     that this package does not currently use the reveal-cancel rule for ReLu units proposed in DeepLIFT.
     """
 
-    def __init__(self, model, data, session=None, learning_phase_flags=None):
+    def __init__(self, model, data, session=None, learning_phase_flags=None, combine_mult_and_diffref=standard_combine_mult_and_diffref):
         """ An explainer object for a deep model using a given background dataset.
 
         Note that the complexity of the method scales linearly with the number of background data
@@ -74,8 +79,22 @@ class TFDeep(Explainer):
             batch norm or dropout. If None is passed then we look for tensors in the graph that look like
             learning phase flags (this works for Keras models). Note that we assume all the flags should
             have a value of False during predictions (and hence explanations).
+            
+        combine_mult_and_diffref : function
+            This function determines how to combine the multipliers,
+             the original input and the reference input to get
+             the final attributions. Defaults to
+             standard_combine_mult_and_diffref, which just multiplies
+             the multipliers with the difference-from-reference (in
+             accordance with the standard DeepLIFT formulation) and then
+             averages the importance scores across the different references.
+             However, different approaches may be applied depending on
+             the use case (e.g. for computing hypothetical contributions
+             in genomic data)
 
         """
+        self.combine_mult_and_diffref = combine_mult_and_diffref
+        
         # try and import keras and tensorflow
         global tf, tf_ops, tf_backprop, tf_execute, tf_gradients_impl
         if tf is None:
@@ -310,10 +329,18 @@ class TFDeep(Explainer):
                 # run attribution computation graph
                 feature_ind = model_output_ranks[j,i]
                 sample_phis = self.run(self.phi_symbolic(feature_ind), self.model_inputs, joint_input)
+                
+                #combine the multipliers with the difference from reference
+                # to get the final attributions
+                phis_j = self.combine_mult_and_diffref(
+                    mult=[sample_phis[l][bg_data[l].shape[0]:]
+                          for l in range(len(X))],
+                    orig_inp=[X[l][j] for l in range(len(X))],
+                    bg_data=bg_data)
 
                 # assign the attributions to the right part of the output arrays
                 for l in range(len(X)):
-                    phis[l][j] = (sample_phis[l][bg_data[l].shape[0]:] * (X[l][j] - bg_data[l])).mean(0)
+                    phis[l][j] = phis_j[l]
 
             output_phis.append(phis[0] if not self.multi_input else phis)
 
