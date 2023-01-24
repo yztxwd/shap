@@ -93,7 +93,7 @@ class TFDeep(Explainer):
              in genomic data)
 
         """
-        self.combine_mult_and_diffref = combine_mult_and_diffref
+        self.combine_mult_and_diffref = combine_mult_and_diffref if combine_mult_and_diffref else standard_combine_mult_and_diffref
         
         # try and import keras and tensorflow
         global tf, tf_ops, tf_backprop, tf_execute, tf_gradients_impl

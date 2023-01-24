@@ -19,7 +19,7 @@ class Deep(Explainer):
     See :ref:`Deep Explainer Examples <deep_explainer_examples>`
     """
 
-    def __init__(self, model, data, session=None, learning_phase_flags=None):
+    def __init__(self, model, data, session=None, learning_phase_flags=None, combine_mult_and_diffref=None):
         """ An explainer object for a differentiable model using a given background dataset.
 
         Note that the complexity of the method scales linearly with the number of background data
@@ -64,6 +64,18 @@ class Deep(Explainer):
             batch norm or dropout. If None is passed then we look for tensors in the graph that look like
             learning phase flags (this works for Keras models). Note that we assume all the flags should
             have a value of False during predictions (and hence explanations).
+        
+        combine_mult_and_diffref : function
+            This function determines how to combine the multipliers,
+             the original input and the reference input to get
+             the final attributions. Defaults to
+             standard_combine_mult_and_diffref, which just multiplies
+             the multipliers with the difference-from-reference (in
+             accordance with the standard DeepLIFT formulation) and then
+             averages the importance scores across the different references.
+             However, different approaches may be applied depending on
+             the use case (e.g. for computing hypothetical contributions
+             in genomic data)
         """
         # first, we need to find the framework
         if type(model) is tuple:
@@ -81,7 +93,7 @@ class Deep(Explainer):
                 framework = 'tensorflow'
 
         if framework == 'tensorflow':
-            self.explainer = TFDeep(model, data, session, learning_phase_flags)
+            self.explainer = TFDeep(model, data, session, learning_phase_flags, combine_mult_and_diffref)
         elif framework == 'pytorch':
             self.explainer = PyTorchDeep(model, data)
 
