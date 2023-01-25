@@ -1,4 +1,4 @@
-
+> **Warning**: This repo is forked from original shap repo, then cherry picks Kundajelab's fork's commit on the multiplier combining function that could be used for hypothetical contributions, use it with caution! Link to the commit: https://github.com/kundajelab/shap/commit/bdeec8ad63bfbe1ef9069899b625ad563f2c2c9a#diff-02e7b6f29cd93a31c3f1f95a2c4fbb65a2cc3832c50c0725ccf4fd420b84fcb7")
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/slundberg/shap/master/docs/artwork/shap_header.svg" width="800" />
